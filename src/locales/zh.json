@@ -445,5 +445,7 @@
   "msg.keyNoSettings": "当前 profile 无法持久化设置。备选方案：在 cordis.patch.yml 的 jev-interceptor 行加 apiKey: <你的key>",
   "msg.invalidThreshold": "非法值（需 0-1）: {v0}",
   "msg.setLiveUnpersisted": "dsh-jev-interceptor：已{v0}，模式 {v1}。 ⚠ 当前组合的设置服务不落盘——重启后丢失；要永久生效请写入 cordis.patch.yml 的 jev-interceptor 行。 下一个工具调用即生效（无需重启）。",
-  "msg.noUpdatableFields": "没有可更新的字段"
+  "msg.noUpdatableFields": "没有可更新的字段",
+  "panel.autoApproveNonHighRiskCalls": "自动批准非高风险工具调用（危险）",
+  "panel.autoApproveNonHighRiskNote": "低风险与中风险的守门升级会自动批准；高风险调用与注入嫌疑会直接自动拒绝，不再询问你。"
 }

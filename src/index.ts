@@ -64,6 +64,7 @@ import { JevClient } from './jev.js'
 import { Telemetry } from './telemetry.js'
 import { createGuardListener, PendingAsks } from './guard.js'
 import { createPreapproveListener } from './preapprove.js'
+import { createAutoDecideListener } from './auto-decide.js'
 import { ApprovalTrace, createApprovalLoopListener } from './approval-loop.js'
 import { createImageOffloadListener } from './image-offload.js'
 import { createStagnationListener, StagnationTracker, type StagnationThresholds } from './stagnation.js'
@@ -301,6 +302,7 @@ export function apply(ctx: Context, config: Config): void {
         guardEnabled: settings.guardEnabled,
         preapproveEnabled: settings.preapproveEnabled,
         stagnationEnabled: settings.stagnationEnabled,
+        autoApproveNonHighRiskCalls: resolveSettings(configOverride ?? config).autoApproveNonHighRiskCalls,
       }
     },
     getStats: () => telemetry.statsData(500),
@@ -321,6 +323,10 @@ export function apply(ctx: Context, config: Config): void {
       if (typeof patch['provider'] === 'string') configOverride = { ...(configOverride ?? config), provider: patch['provider'] as Config['provider'] }
       if (typeof patch['endpoint'] === 'string') configOverride = { ...(configOverride ?? config), endpoint: patch['endpoint'] }
       if (typeof patch['apiKey'] === 'string') configOverride = { ...(configOverride ?? config), apiKey: patch['apiKey'] }
+      // DANGEROUS opt-in: the guard's routine (non-high-risk) approvals are granted automatically.
+      if (typeof patch['autoApproveNonHighRiskCalls'] === 'boolean') {
+        configOverride = { ...(configOverride ?? config), autoApproveNonHighRiskCalls: patch['autoApproveNonHighRiskCalls'] }
+      }
       // 阈值字段（校准建议一键应用）：写进活配置，挂点 getter 下一个调用即生效。
       // 非法值（非数字/越界）如实拒绝——绝不静默 200 假装成功。
       for (const key of CALIBRATABLE_KEYS) {
@@ -410,6 +416,17 @@ export function apply(ctx: Context, config: Config): void {
       trace: approvalTrace,
     }), { prepend: true })
   }
+
+  // Optional unattended decisions for the guard's own escalations. Always
+  // registered (a pass-through while the flag is off) so a live Settings-form
+  // toggle works without re-mounting the listener: below-high-risk asks are
+  // approved, high-risk and injection-suspicion asks are rejected. Guard
+  // denials already stop on their own and never reach an answerer.
+  ctx.on('approval/request', createAutoDecideListener({
+    live,
+    enabled: () => resolveSettings(configOverride ?? config).autoApproveNonHighRiskCalls,
+    pendingAsks,
+  }), { prepend: true })
 
   // Image-offload pre-planning: fills the gap dsh's README admits —
   // "nothing plans an offload before dispatch". Opt-in (default off) because

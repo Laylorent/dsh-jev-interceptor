@@ -22,6 +22,8 @@ interface JevStatus {
   guardEnabled: boolean
   preapproveEnabled: boolean
   stagnationEnabled: boolean
+  /** Opt-in: the guard's own non-high-risk approvals are granted automatically. */
+  autoApproveNonHighRiskCalls?: boolean
 }
 
 /** 影子→执行的升级就绪度（本地镜像宿主 ShadowReadiness）。 */
@@ -1615,6 +1617,33 @@ export function JevPage(_props: JevPageProps): React.JSX.Element {
             </div>
           </div>
           <p className="jev-note">{t('panel.beforeSwitchingToEnforceModeObserveDecisions')}</p>
+          <div className="jev-field" style={{ marginTop: 12 }}>
+            <label
+              className="jev-note"
+              style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 8, cursor: status === null ? 'default' : 'pointer' }}
+            >
+              <input
+                type="checkbox"
+                checked={status?.autoApproveNonHighRiskCalls === true}
+                disabled={busy !== '' || status === null}
+                onChange={event => {
+                  const next = event.target.checked
+                  void applyPatch(
+                    'autoApproveNonHighRiskCalls',
+                    { autoApproveNonHighRiskCalls: next },
+                    { autoApproveNonHighRiskCalls: next },
+                  )
+                }}
+                style={{ marginTop: 2 }}
+              />
+              <span>
+                <b>{t('panel.autoApproveNonHighRiskCalls')}</b>
+                <span className="jev-note" style={{ display: 'block' }}>
+                  {t('panel.autoApproveNonHighRiskNote')}
+                </span>
+              </span>
+            </label>
+          </div>
         </section>
 
         <section className="jev-card">

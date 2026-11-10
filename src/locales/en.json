@@ -445,5 +445,7 @@
   "msg.keyNoSettings": "This profile cannot persist settings. Alternative: add apiKey: <your key> to the jev-interceptor row in cordis.patch.yml",
   "msg.invalidThreshold": "Invalid value (must be 0-1): {v0}",
   "msg.setLiveUnpersisted": "dsh-jev-interceptor: {v0}, mode {v1}. ⚠ This composition's settings service does not persist — the change is lost on restart; write it into the jev-interceptor row of cordis.patch.yml to make it permanent. Takes effect on the next tool call (no restart).",
-  "msg.noUpdatableFields": "No updatable fields"
+  "msg.noUpdatableFields": "No updatable fields",
+  "panel.autoApproveNonHighRiskCalls": "Auto-approve for me non-high risk tool calls (DANGEROUS)",
+  "panel.autoApproveNonHighRiskNote": "Low- and medium-risk guard escalations are approved automatically; high-risk calls and injection-suspicion escalations are denied automatically instead of asking you."
 }

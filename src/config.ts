@@ -82,6 +82,14 @@ export interface Config {
   guardIrreversibleDenyFloor?: number
   /** Injection probability at/above which a call escalates regardless of risk (default 0.8). */
   guardInjectionAskThreshold?: number
+  /**
+   * Decide the guard's own escalations without a human (default off).
+   * When on, guard escalations whose risk came back low or medium and that are
+   * not injection-suspicion asks are answered `allowed-once`; high-risk asks
+   * and injection-suspicion asks are answered `rejected`. The human prompt is
+   * removed for both outcomes — enable only when that autonomy is accepted.
+   */
+  autoApproveNonHighRiskCalls?: boolean
 
   /** Pre-approval hook master switch (default on when the plugin is enabled). */
   preapproveEnabled?: boolean
@@ -157,6 +165,7 @@ export const DEFAULTS = {
   guardIrreversibleCeiling: 0.2,
   guardIrreversibleDenyFloor: 0.5,
   guardInjectionAskThreshold: 0.8,
+  autoApproveNonHighRiskCalls: false,
   preapproveEnabled: true,
   preapproveToolAllowlist: [] as string[],
   preapproveAutoApproveMin: 0.85,
@@ -202,6 +211,8 @@ export const Config: z<Config> = z.object({
   guardIrreversibleCeiling: z.number().min(0).max(1).default(DEFAULTS.guardIrreversibleCeiling),
   guardIrreversibleDenyFloor: z.number().min(0).max(1).default(DEFAULTS.guardIrreversibleDenyFloor),
   guardInjectionAskThreshold: z.number().min(0).max(1).default(DEFAULTS.guardInjectionAskThreshold),
+  autoApproveNonHighRiskCalls: z.boolean().default(DEFAULTS.autoApproveNonHighRiskCalls)
+    .description('Decide the guard\'s own escalations: approve non-high-risk, reject high-risk/injection (DANGEROUS)'),
 
   preapproveEnabled: z.boolean().default(DEFAULTS.preapproveEnabled),
   preapproveToolAllowlist: z.array(z.string()).default(DEFAULTS.preapproveToolAllowlist),
@@ -248,6 +259,7 @@ export interface ResolvedSettings {
   readonly guardIrreversibleCeiling: number
   readonly guardIrreversibleDenyFloor: number
   readonly guardInjectionAskThreshold: number
+  readonly autoApproveNonHighRiskCalls: boolean
   readonly preapproveEnabled: boolean
   readonly preapproveToolAllowlist: ReadonlySet<string>
   readonly preapproveAutoApproveMin: number
@@ -298,6 +310,7 @@ export function resolveSettings(config: Config): ResolvedSettings {
     guardIrreversibleCeiling: config.guardIrreversibleCeiling ?? DEFAULTS.guardIrreversibleCeiling,
     guardIrreversibleDenyFloor: config.guardIrreversibleDenyFloor ?? DEFAULTS.guardIrreversibleDenyFloor,
     guardInjectionAskThreshold: config.guardInjectionAskThreshold ?? DEFAULTS.guardInjectionAskThreshold,
+    autoApproveNonHighRiskCalls: config.autoApproveNonHighRiskCalls ?? DEFAULTS.autoApproveNonHighRiskCalls,
     preapproveEnabled: config.preapproveEnabled ?? DEFAULTS.preapproveEnabled,
     preapproveToolAllowlist: new Set(config.preapproveToolAllowlist ?? DEFAULTS.preapproveToolAllowlist),
     preapproveAutoApproveMin: config.preapproveAutoApproveMin ?? DEFAULTS.preapproveAutoApproveMin,

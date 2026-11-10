@@ -150,7 +150,40 @@ describe('createGuardListener', () => {
     const listener = createGuardListener(deps)
     const decision = await listener(fakeExec(), nextAllow)
     expect(decision.kind).toBe('ask')
-    expect(deps.pendingAsks.take('session-1', 'call-1' as ToolCallId, 'bash')?.argsPreview).toContain('npm test')
+    const pending = deps.pendingAsks.take('session-1', 'call-1' as ToolCallId, 'bash')
+    expect(pending?.argsPreview).toContain('npm test')
+    // Medium risk, no injection suspicion: the optional auto-approver may grant it.
+    expect(pending?.autoDecision).toBe('approve')
+  })
+
+  it('marks high-risk and injection escalations as auto-denied', async () => {
+    const highDeps = await makeDeps({
+      classify: async () => fakeResult({
+        answers: {
+          risk: { type: 'choice', choice: 'high', probabilities: { high: 0.7 }, confidence: 0.7 },
+          irreversible: { type: 'noul', noul: 0.1 },
+          matches_task: { type: 'noul', noul: 0.9 },
+          injection_suspect: { type: 'noul', noul: 0.01 },
+        },
+      }),
+    })
+    const high = createGuardListener(highDeps)
+    expect((await high(fakeExec(), nextAllow)).kind).toBe('ask')
+    expect(highDeps.pendingAsks.take('session-1', 'call-1' as ToolCallId, 'bash')?.autoDecision).toBe('deny')
+
+    const injectionDeps = await makeDeps({
+      classify: async () => fakeResult({
+        answers: {
+          risk: { type: 'choice', choice: 'low', probabilities: { low: 0.9 }, confidence: 0.9 },
+          irreversible: { type: 'noul', noul: 0.1 },
+          matches_task: { type: 'noul', noul: 0.9 },
+          injection_suspect: { type: 'noul', noul: 0.9 },
+        },
+      }),
+    })
+    const injection = createGuardListener(injectionDeps)
+    expect((await injection(fakeExec(), nextAllow)).kind).toBe('ask')
+    expect(injectionDeps.pendingAsks.take('session-1', 'call-1' as ToolCallId, 'bash')?.autoDecision).toBe('deny')
   })
 
   it('never enforces in shadow mode', async () => {

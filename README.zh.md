@@ -65,6 +65,7 @@ dsh plugin --profile <name> add dsh-jev-interceptor
     enabled: true
     mode: shadow            # 先观察模式：记录每个决策，不执行任何干预
     locale: auto            # 消息语言：auto 跟随 GUI | en | zh
+    autoApproveNonHighRiskCalls: false  # 危险：常规升级自动批准，危险升级自动拒绝
     provider: typesafe      # 或 'openrouter'（今天就能用，无需候补）| 'custom'
 ```
 
@@ -107,6 +108,7 @@ dsh plugin --profile <name> add dsh-jev-interceptor
 - **永不返回 `allow`。** "无异议"用 `next()` 表达，链上后续 listener（外部 hook、auto-review）的否决权完好无损。
 - **处处 fail-closed。** 无 key / provider 冷却 / 超时 / 解析不匹配 / 内部错误 → 委托回原生行为。审批服务的 `never` 策略在任何 listener 之前执行，本插件在结构上就无法放宽它。
 - **证据门控的自动批准。** `allowed-once` 必须有参数证据：只有 guard 升级过的调用（新鲜条目、会话与工具都匹配）才可能被自动批；hook 请求与沙箱提级不携带参数，一律转人工。
+- **可选的"一概同意"（危险，默认关闭）。** `autoApproveNonHighRiskCalls` 把 guard 自己的升级交给无人值守决策：*非高风险、非注入嫌疑*的升级批准为 `allowed-once`，高风险与注入嫌疑的升级直接返回 `rejected`——两个方向都不再询问你。它只改变本插件的应答器；上游 `never` 策略与证据门仍照常执行。
 - **注入感知。** 工具参数只进 Jev `state` 数据字段；`instructions` 是固定文案；疑似注入的答案触发*升级*而非压制。（Jev 官方承认可被对抗内容影响——所以本插件的拦截是加速器，永远不是最后防线。）
 - **输入限界。** 参数头尾预览 + 尾部消息摘要——Jev 官方指引就是"代码先过滤，只发问题需要的字段"。
 - **构造级韧性。** 每次尝试墙钟超时、429/529 单次重试、连续失败进冷却（超时也计数）、并发上限、LRU 决策缓存、排队有界的信号量。provider 挂掉的代价是零行为差异，不是你的 harness。

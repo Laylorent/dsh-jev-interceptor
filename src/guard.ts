@@ -35,6 +35,13 @@ import type { Telemetry } from './telemetry.js'
 export interface PendingAsk {
   readonly tool: string
   readonly argsPreview: string
+  /**
+   * What an unattended `autoApproveNonHighRiskCalls` answerer does with this
+   * escalation, frozen at classification time: `approve` for below-high-risk,
+   * non-injection asks, `deny` for high-risk and injection-suspicion asks.
+   * Everything else ignores it and still asks the human. Absent means "ask".
+   */
+  readonly autoDecision?: 'approve' | 'deny'
   readonly createdAt: number
 }
 
@@ -268,7 +275,8 @@ async function evaluateGuard(deps: GuardDeps, live: LiveSettings, exec: ToolExec
     })
     return undefined
   }
-  const action = decideGuard(extracted, deps.thresholds(), deps.locale())
+  const thresholds = deps.thresholds()
+  const action = decideGuard(extracted, thresholds, deps.locale())
   deps.telemetry.record({
     ts: new Date().toISOString(),
     tag: 'guard',
@@ -291,11 +299,16 @@ async function evaluateGuard(deps: GuardDeps, live: LiveSettings, exec: ToolExec
       inj: extracted.injectionSuspect.noul,
     },
   })
-  // Stash the bounded argument preview for the pre-approval question.
+  // Stash the bounded argument preview for the pre-approval question, plus the
+  // frozen unattended verdict for the optional auto-decider: high risk and
+  // injection-suspicion escalations are denied, everything else is approved.
   if (action.kind === 'ask' || action.kind === 'deny') {
+    const dangerous = extracted.risk.choice === 'high'
+      || extracted.injectionSuspect.noul >= thresholds.injectionAskThreshold
     deps.pendingAsks.set(session.id, exec.callId, {
       tool: exec.name,
       argsPreview: state.args_preview,
+      autoDecision: dangerous ? 'deny' : 'approve',
     })
   }
   return action

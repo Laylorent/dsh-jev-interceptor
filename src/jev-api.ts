@@ -26,6 +26,8 @@ export interface JevPanelStatus {
   guardEnabled: boolean
   preapproveEnabled: boolean
   stagnationEnabled: boolean
+  /** Opt-in: the guard's own non-high-risk approvals are granted automatically. */
+  autoApproveNonHighRiskCalls: boolean
 }
 
 export interface JevPanelTagSummary {
@@ -143,9 +145,14 @@ export function registerJevApi(
       try {
         const body = JSON.parse(await request.text()) as Record<string, unknown>
         // Whitelist: toggles/credentials plus the eight calibratable thresholds
-        // (calibration's one-click apply); threshold values re-validated host-side
+        // Whitelist: toggles/credentials plus the eight calibratable thresholds
+        // (calibration's one-click apply), the pre-approval allowlist, and the
+        // dangerous auto-approve opt-in; threshold values re-validated host-side
         // and rejected honestly (400) when out of range.
-        const allowed = ['enabled', 'mode', 'apiKey', 'provider', 'endpoint', 'preapproveToolAllowlist', ...THRESHOLD_KEYS]
+        const allowed = [
+          'enabled', 'mode', 'apiKey', 'provider', 'endpoint', 'preapproveToolAllowlist',
+          'autoApproveNonHighRiskCalls', ...THRESHOLD_KEYS,
+        ]
         const patch: Record<string, unknown> = {}
         for (const key of allowed) {
           if (Object.hasOwn(body, key)) patch[key] = body[key]

@@ -65,6 +65,7 @@ dsh plugin --profile <name> add dsh-jev-interceptor
     enabled: true
     mode: shadow            # watch mode first: records every decision, enforces nothing
     locale: auto            # message language: auto follows the GUI | en | zh
+    autoApproveNonHighRiskCalls: false  # DANGEROUS: approve routine / reject dangerous guard asks
     provider: typesafe      # or 'openrouter' (works today, no waitlist) | 'custom'
 ```
 
@@ -107,6 +108,7 @@ Calibration closes its own loop: every `/jev-calibrate` run snapshots the report
 - **Never `allow`.** "No objection" is expressed as `next()`, so downstream listeners (external hooks, auto-review) keep their veto.
 - **Fail-closed everywhere.** No key / provider cooldown / timeout / parse mismatch / internal error → delegate to stock behavior. The approval service's `never` policy is enforced upstream of every listener, so this plugin structurally cannot relax it.
 - **Evidence-gated auto-approval.** `allowed-once` requires captured argument evidence: only a call the guard escalated (fresh pending entry, matching session and tool) can be auto-approved. Hook asks and sandbox escalations carry no arguments and always go to the human.
+- **Opt-in blanket consent (DANGEROUS, off by default).** `autoApproveNonHighRiskCalls` removes the human step from the guard's own escalations: *below-high-risk, non-injection* asks are answered `allowed-once`, while high-risk asks and injection-suspicion asks are answered `rejected` — unattended in both directions. It changes only this plugin's answerer; the upstream `never` policy and the evidence gate still apply.
 - **Injection-aware.** Tool arguments enter the Jev `state` data field only; `instructions` are fixed strings; a suspected-injection answer *escalates* rather than suppresses. (Jev's maker acknowledges adversarial inputs can sway classifiers — so denial here is an accelerator, never the last line of defense.)
 - **Bounded input.** Head+tail argument previews and trailing-message digests — Jev's own guidance is to filter in code and send only what a question needs.
 - **Resilient by construction.** Wall-clock timeout per attempt, single retry on 429/529, cooldown after consecutive failures (timeouts count), concurrency cap, LRU decision cache, queue-bound semaphore. A dead provider costs you zero behavior, not your harness.
